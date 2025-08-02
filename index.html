@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="免费的离线二维码生成器，输入网址即可生成高质量二维码">
+    <title>离线二维码生成器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">二维码生成器</h1>
+            <p class="subtitle">输入网址，即刻生成二维码 | 完全离线，隐私安全</p>
+        </header>
+
+        <main class="main">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="url-input" class="input-label">请输入网址</label>
+                    <input 
+                        type="url" 
+                        id="url-input" 
+                        class="url-input" 
+                        placeholder="例如：https://www.example.com"
+                        autocomplete="url"
+                        spellcheck="false"
+                        aria-describedby="input-help error-message"
+                    >
+                    <div id="input-help" class="input-help">
+                        支持 http://、https://、ftp:// 等协议
+                    </div>
+                </div>
+                
+                <button type="button" id="generate-btn" class="generate-btn">
+                    <span class="btn-text">生成二维码</span>
+                    <span class="btn-loader" style="display: none;">生成中...</span>
+                </button>
+            </div>
+
+            <div id="error-message" class="error-message" role="alert" aria-live="polite" style="display: none;">
+            </div>
+
+            <div id="result-section" class="result-section" style="display: none;">
+                <div class="qr-container">
+                    <div id="qr-code" class="qr-code"></div>
+                </div>
+                
+                <div class="qr-info">
+                    <p id="qr-url" class="qr-url"></p>
+                </div>
+
+                <div class="actions">
+                    <div class="size-controls">
+                        <label for="size-select" class="size-label">尺寸:</label>
+                        <select id="size-select" class="size-select">
+                            <option value="256">中等 (256px)</option>
+                            <option value="200">小号 (200px)</option>
+                            <option value="300">大号 (300px)</option>
+                            <option value="400">超大 (400px)</option>
+                        </select>
+                    </div>
+                    
+                    <button type="button" id="download-btn" class="download-btn">
+                        下载二维码
+                    </button>
+                    
+                    <button type="button" id="new-qr-btn" class="new-qr-btn">
+                        生成新的
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p class="footer-text">
+                完全离线运行 | 无数据传输 | 隐私安全
+            </p>
+        </footer>
+    </div>
+
+    <!-- QR Code Generation Library -->
+    <script src="qrcode.min.js"></script>
+    <!-- Main Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
