@@ -8,7 +8,7 @@
 
     // Application state
     let currentQRCode = null;
-    let currentURL = '';
+    let currentContent = '';
     let currentSize = 256;
 
     // DOM elements
@@ -18,7 +18,7 @@
         errorMessage: null,
         resultSection: null,
         qrCodeContainer: null,
-        qrUrlDisplay: null,
+        qrContentDisplay: null,
         sizeSelect: null,
         downloadBtn: null,
         newQrBtn: null,
@@ -26,23 +26,10 @@
         btnLoader: null
     };
 
-    // URL validation patterns
-    const urlPatterns = {
-        // Basic URL pattern with protocol
-        withProtocol: /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i,
-        // URL pattern without protocol
-        withoutProtocol: /^[^\s/$.?#].[^\s]*\.[^\s]{2,}$/i,
-        // IP address pattern
-        ipAddress: /^(https?|ftp):\/\/(\d{1,3}\.){3}\d{1,3}(:\d+)?(\/.*)?$/i,
-        // Localhost pattern
-        localhost: /^(https?):\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i
-    };
-
     // Error messages
     const errorMessages = {
-        empty: '请输入一个网址',
-        invalid: '请输入一个有效的网址',
-        tooLong: '网址太长，请使用较短的网址',
+        empty: '请输入要转换的内容',
+        tooLong: '内容太长，请使用较短的文本',
         generation: '生成二维码时出错，请重试'
     };
 
@@ -67,7 +54,7 @@
         elements.errorMessage = document.getElementById('error-message');
         elements.resultSection = document.getElementById('result-section');
         elements.qrCodeContainer = document.getElementById('qr-code');
-        elements.qrUrlDisplay = document.getElementById('qr-url');
+        elements.qrContentDisplay = document.getElementById('qr-content');
         elements.sizeSelect = document.getElementById('size-select');
         elements.downloadBtn = document.getElementById('download-btn');
         elements.newQrBtn = document.getElementById('new-qr-btn');
@@ -118,26 +105,23 @@
 
     // Handle generate button click
     function handleGenerate() {
-        const url = elements.urlInput.value.trim();
-        
+        const content = elements.urlInput.value.trim();
+
         // Validate input
-        const validation = validateURL(url);
+        const validation = validateContent(content);
         if (!validation.isValid) {
             showError(validation.message);
             return;
         }
-        
-        // Process URL (add protocol if missing)
-        const processedURL = processURL(url);
-        
+
         // Show loading state
         showLoading(true);
-        
+
         // Generate QR code with slight delay for better UX
         setTimeout(() => {
             try {
-                generateQRCode(processedURL);
-                showResult(processedURL);
+                generateQRCode(content);
+                showResult(content);
                 showLoading(false);
             } catch (error) {
                 console.error('QR Code generation failed:', error);
@@ -147,68 +131,44 @@
         }, 300);
     }
 
-    // Validate URL input
-    function validateURL(url) {
+    // Validate text input
+    function validateContent(text) {
         // Check if empty
-        if (!url) {
+        if (!text) {
             return { isValid: false, message: errorMessages.empty };
         }
-        
+
         // Check length (QR codes have data limits)
-        if (url.length > 2000) {
+        if (text.length > 2000) {
             return { isValid: false, message: errorMessages.tooLong };
         }
-        
-        // Check URL patterns
-        const hasProtocol = urlPatterns.withProtocol.test(url) || 
-                           urlPatterns.ipAddress.test(url) || 
-                           urlPatterns.localhost.test(url);
-        
-        const withoutProtocol = urlPatterns.withoutProtocol.test(url);
-        
-        if (!hasProtocol && !withoutProtocol) {
-            return { isValid: false, message: errorMessages.invalid };
-        }
-        
+
         return { isValid: true };
     }
 
-    // Process URL (add protocol if missing)
-    function processURL(url) {
-        // If URL already has protocol, return as is
-        if (urlPatterns.withProtocol.test(url) || 
-            urlPatterns.ipAddress.test(url) || 
-            urlPatterns.localhost.test(url)) {
-            return url;
-        }
-        
-        // Add https:// protocol for URLs without protocol
-        return 'https://' + url;
-    }
-
     // Generate QR code
-    function generateQRCode(url) {
+    function generateQRCode(content) {
         // Clear previous QR code
         elements.qrCodeContainer.innerHTML = '';
-        
+
         // Create new QR code
         currentQRCode = new QRCode(elements.qrCodeContainer, {
-            text: url,
+            text: content,
             width: currentSize,
             height: currentSize,
             colorDark: '#000000',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M
         });
-        
-        currentURL = url;
+
+        currentContent = content;
     }
 
     // Show result section
-    function showResult(url) {
-        // Update URL display
-        elements.qrUrlDisplay.textContent = url;
-        
+    function showResult(content) {
+        // Update content display
+        elements.qrContentDisplay.textContent = content;
+
         // Show result section with animation
         elements.resultSection.style.display = 'block';
         
@@ -225,11 +185,11 @@
     function handleSizeChange() {
         const newSize = parseInt(elements.sizeSelect.value);
         
-        if (newSize !== currentSize && currentURL) {
+        if (newSize !== currentSize && currentContent) {
             currentSize = newSize;
-            
+
             // Regenerate QR code with new size
-            generateQRCode(currentURL);
+            generateQRCode(currentContent);
         }
     }
 
@@ -268,18 +228,35 @@
     // Generate filename for download
     function generateFileName() {
         const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-        const domain = extractDomain(currentURL);
-        return `qrcode-${domain}-${timestamp}.png`;
+        const label = createFilenameLabel(currentContent);
+        return `qrcode-${label}-${timestamp}.png`;
     }
 
-    // Extract domain from URL for filename
-    function extractDomain(url) {
-        try {
-            const urlObj = new URL(url);
-            return urlObj.hostname.replace(/[^a-zA-Z0-9.-]/g, '');
-        } catch (error) {
-            return 'website';
+    function createFilenameLabel(text) {
+        if (!text) {
+            return 'content';
         }
+
+        let base = text;
+        if (typeof base.normalize === 'function') {
+            base = base.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        const sanitized = base
+            .replace(/\s+/g, '-')
+            .replace(/[^a-zA-Z0-9-_]/g, '')
+            .toLowerCase()
+            .slice(0, 24);
+
+        if (sanitized) {
+            return sanitized;
+        }
+
+        const encoded = encodeURIComponent(text)
+            .replace(/%/g, '')
+            .slice(0, 24);
+
+        return encoded || 'content';
     }
 
     // Handle new QR generation
@@ -295,7 +272,7 @@
         
         // Reset state
         currentQRCode = null;
-        currentURL = '';
+        currentContent = '';
         
         // Focus on input
         elements.urlInput.focus();
@@ -396,8 +373,7 @@
     // Expose some functions for testing (development only)
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
         window.QRApp = {
-            validateURL: validateURL,
-            processURL: processURL,
+            validateContent: validateContent,
             generateFileName: generateFileName
         };
     }
